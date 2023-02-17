@@ -7,6 +7,7 @@ const SALT_WORK_FACTOR = 10;
 
 interface IUserMethods {
     generateToken(): void;
+    checkPassword(password: string): Promise<boolean>;
 }
 
 type UserModel = Model<IUser, {}, IUserMethods>;
@@ -48,6 +49,10 @@ UserSchema.set('toJSON', {
         return ret;
     }
 });
+
+UserSchema.methods.checkPassword = function (password) {
+    return bcrypt.compare(password, this.password);
+};
 
 const User = model<IUser, UserModel>('User', UserSchema);
 export default User;

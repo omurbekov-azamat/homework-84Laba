@@ -10,9 +10,9 @@ usersRouter.post('/', async (req, res, next) => {
     }
 
     try {
-        const test = await User.findOne({username: req.body.username});
+        const findUser = await User.findOne({username: req.body.username});
 
-        if (test) {
+        if (findUser) {
             return res.status(400).send({error: 'this username is already taken'});
         }
 
@@ -31,6 +31,29 @@ usersRouter.post('/', async (req, res, next) => {
 
         return next(error);
     }
+});
+
+usersRouter.post('/sessions', async (req, res) => {
+    if (!req.body.username || !req.body.password) {
+        return res.status(400).send({error: 'You have to fields username and password'});
+    }
+
+    const user = await User.findOne({username: req.body.username});
+
+    if (!user) {
+        return res.status(400).send({error: 'Username not found'});
+    }
+
+    const isMatch = await user.checkPassword(req.body.password);
+
+    if (!isMatch) {
+        return res.status(404).send({error: 'Password is wrong'});
+    }
+
+    user.generateToken();
+    await user.save();
+
+    return res.send({message: 'Username and password correct', user});
 });
 
 export default usersRouter;
