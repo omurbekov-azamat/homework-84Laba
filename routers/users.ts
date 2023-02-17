@@ -10,6 +10,12 @@ usersRouter.post('/', async (req, res, next) => {
     }
 
     try {
+        const test = await User.findOne({username: req.body.username});
+
+        if (test) {
+            return res.status(400).send({error: 'this username is already taken'});
+        }
+
         const user = new User({
             username: req.body.username,
             password: req.body.password,
