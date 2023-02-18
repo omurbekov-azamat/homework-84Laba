@@ -46,4 +46,29 @@ tasksRouter.post('/', async (req, res, next) => {
     }
 });
 
+tasksRouter.get('/', async (req, res, next) => {
+    try {
+        const token = req.get('Authorization');
+
+        if (!token) {
+            return res.status(400).send({error: 'No token present'});
+        }
+
+        const user = await User.findOne({token});
+
+        if (!user) {
+            return res.status(400).send({error: 'Wrong token!'});
+        }
+
+        const tasks = await Task.find({user: user.id});
+        return res.send(tasks);
+    } catch (error) {
+        if (error instanceof Error.ValidationError) {
+            return res.status(400).send(error);
+        }
+
+        return next(error);
+    }
+});
+
 export default tasksRouter;
