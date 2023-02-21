@@ -6,12 +6,8 @@ import Task from "../modules/Task";
 const tasksRouter = express.Router();
 
 tasksRouter.post('/', auth, async (req, res, next) => {
-    if (!req.body.title || !req.body.status) {
-        return res.status(400).send({error: 'Title and status field is required'});
-    }
-
-    if (req.body.status !== "new" && req.body.status !== 'in_progress' && req.body.status !== 'complete') {
-        return res.status(400).send({error: 'Status only can be: new, in_progress or complete'});
+    if (!req.body.title) {
+        return res.status(400).send({error: 'Title field is required'});
     }
 
     const user = (req as RequestWithUser).user;
@@ -49,6 +45,7 @@ tasksRouter.get('/', auth, async (req, res, next) => {
 });
 
 tasksRouter.put('/:id', auth, async (req, res, next) => {
+
     if (!req.body.title || !req.body.status) {
         return res.status(400).send({error: 'Title and status field is required'});
     }
@@ -58,32 +55,32 @@ tasksRouter.put('/:id', auth, async (req, res, next) => {
     }
 
     const user = (req as RequestWithUser).user;
+    const updateTask = {
+        title: req.body.title,
+        description: req.body.description,
+        status: req.body.status,
+    };
+
     try {
         const task = await Task.findById(req.params.id);
-
         if (!task) {
-            return res.status(403).send({error: "You don't have task with these id"});
+            return res.send({error: "ID is not correct"});
         }
 
         if (task.user.toString() === user.id.toString()) {
-            await Task.updateOne({_id: req.params.id}, {
-                $set: {
-                    user: user.id,
-                    title: req.body.title,
-                    description: req.body.description,
-                    status: req.body.status,
-                }
-            });
-            return res.send({message: 'You have changed your task'});
+            await Task.updateOne({_id: req.params.id}, {$set: updateTask});
+            return res.send(updateTask);
         } else {
-            return res.send({error: 'You can not change that task!'});
+            return res.status(403).send({error: 'You can not change that task!'});
         }
     } catch (error) {
         if (error instanceof Error.ValidationError) {
             return res.status(400).send(error);
+        } else if (error instanceof Error.CastError) {
+            return res.send({error: "ID is not correct"});
+        } else {
+            return next();
         }
-
-        return next(error);
     }
 });
 
@@ -93,21 +90,23 @@ tasksRouter.delete('/:id', auth, async (req, res, next) => {
         const task = await Task.findById(req.params.id);
 
         if (!task) {
-            return res.status(403).send({error: "You don't have task with these id"});
+            return res.send({error: "ID is not correct"});
         }
 
         if (task.user.toString() === user.id.toString()) {
             await Task.deleteOne({_id: req.params.id});
             return res.send({message: 'You have deleted your task'});
         } else {
-            return res.status(400).send({error: 'You can not delete that task!'});
+            return res.status(403).send({error: 'You can not delete that task!'});
         }
     } catch (error) {
         if (error instanceof Error.ValidationError) {
             return res.status(400).send(error);
+        } else if (error instanceof Error.CastError) {
+            return res.send({error: "ID is not correct"});
+        } else {
+            return next();
         }
-
-        return next(error);
     }
 });
 
